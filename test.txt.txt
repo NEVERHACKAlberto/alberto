@@ -1,8 +1,14 @@
-Hola Scarlett, buen día.
-
-Gracias por la invitación. Solo para confirmar, ¿la sesión está enfocada en revisar el plan de trabajo?
-Si es así, consideramos más eficiente que estemos únicamente Luis y yo para consolidar la versión final y luego compartirla con el resto del equipo.
-
-En caso de que la sesión tenga otro objetivo (funcional o técnico), con gusto nos sumamos todos.
-
-Quedo atento a tu confirmación.
+SELECT 
+	substr(a.cta_ordenante, 1, 11) AS CTA_ORDENANTE, 
+	a.comision AS COMISION,
+	a.id_detalle_cobr AS ID_DETALLE_COBR, 
+	a.codi_oper_comi AS COD_OPER,  
+	a.concepto AS CONCEPTO, 
+	a.iva AS IVA, 
+	a.divisa AS DIVISA,  
+	CASE a.divisa WHEN 'MXP' THEN a.comision ELSE a.comision_divisa END AS COMISION_DIVISA 
+FROM 
+	h2h_det_com_tran a INNER JOIN h2h_cobr_com_tran b ON b.id_cobr_com = a.id_cobr_com 
+WHERE b.fech_hora = TO_DATE(?, 'yyyyMMdd') 
+	AND a.id_cat_status = '46' 
+	AND a.comision > 0.1
