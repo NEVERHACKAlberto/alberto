@@ -1,0 +1,33 @@
+SELECT
+  /*NUM-CTA: cuenta a debitar */
+  SUBSTR(b.NUM_CHARGE_ACC, 1, 11) AS CTA_ORDENANTE,
+  /*IMPORTE: comisión a cobrar */
+  p.IMP_FEE_CHARGE                 AS COMISION,
+  /*SECUEN: usamos el ID detalle como secuencial de envío */
+  p.ID_PYMT_SEQ_PK                 AS ID_DETALLE_COBR,
+  /*COD-OPER: código de operación que identifica el concepto */
+  p.ID_TXN_CODE                    AS COD_OPER,
+  /*CONCEPTO: concepto */
+  cc.DSC_CONCEPT                   AS CONCEPTO,
+  /* IVA: NO se envía; se actualizará con la respuesta .out */
+  0                                AS IVA,
+  /* DIVISA: moneda de cargo de la cuenta / bill */
+  b.VAL_CCY                        AS DIVISA,
+  /* COMISION_DIVISA: si es MXP usamos el monto base; si no,
+     aplicamos tipo de cambio (¿en que momento va el cambio de divisa?) */
+  p.IMP_FEE_CHARGE                 AS COMISION_DIVISA
+FROM   CBRM_MX_PRC_PYMTS            p     -- Tabla operativa de solicitud/respuesta
+JOIN   CBRM_MX_PRC_BILL             b
+       ON b.ID_BILL_PK = p.ID_BILL_FK     -- Concentrado / encabezado de cobro
+JOIN   CBRM_MX_REL_CONFIG_PYMT      c
+       ON c.ID_CONFIG_PYMT_PK = p.ID_CONFIG_PYMT_FK  -- Fechas del ciclo/período
+JOIN   CBRM_MX_PRC_COMMISS_CHARGES cc
+       ON cc.ID_BILL_FK = p.ID_BILL_FK
+      AND cc.VAL_TXN_CODE = p.ID_TXN_CODE
+WHERE  TRUNC(c.FCH_TXN_END_DATE) = ?
+/*ESTATUS DE ENVÍO:Solo “No Paid” va a la interfaz de cobro del día.*/
+  AND  p.VAL_PYMT_STATUS = 'No Paid'
+/*UMBRAL OPERATIVO: evitamos registros ~0 por redondeo.*/
+  AND  p.IMP_FEE_CHARGE > 0.1
+/*ORDEN: estable para construir el archivo posicional*/
+ORDER BY b.NUM_CHARGE_ACC, p.ID_PYMT_SEQ_PK;
